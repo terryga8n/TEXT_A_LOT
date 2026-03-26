@@ -1,10 +1,12 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SharpFont;
 using StbImageSharp;
+using System.ComponentModel;
 using System.Text;
 using TEXT_A_LOT;
 using static System.Runtime.CompilerServices.RuntimeHelpers;
@@ -23,19 +25,23 @@ namespace TEXT_A_LOT
         Shader shader;
         string a;
         StringBuilder ag = new StringBuilder();
+        Vector2i mousePos;
 
         Dictionary<char, Character> Characters = new Dictionary<char, Character>();
 
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
+        private static extern bool FreeConsole();
         public Text(int width, int height, string title) : base(GameWindowSettings.Default,
                        new NativeWindowSettings() { Size = (width, height), Title = title })
         {
-
+            
            
         }
         protected override void OnLoad()
         {
             base.OnLoad();
             ft = new Library();
+            
             string fontPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayfairDisplay-VariableFont_wght.ttf");
             face = new Face(ft, fontPath);
             if (face == null)
@@ -59,9 +65,10 @@ namespace TEXT_A_LOT
             {
                 Console.WriteLine($"'A' loaded. Size: {face.Glyph.Bitmap.Width}x{face.Glyph.Bitmap.Rows}, {face.Glyph.Bitmap.ToString()}");
             }
-            GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1); //diable byte alignmwnt restriction
+            GL.PixelStore(PixelStoreParameter.UnpackAlignment, 1); //disable byte alignmwnt restriction
 
             GL.ClearColor(0.1f, .10f, 0.1f, 1.0f);
+
             for (byte c = 0; c < 128; c++)
             {
                 face.LoadChar(c, LoadFlags.Render, LoadTarget.Normal);
@@ -87,6 +94,7 @@ namespace TEXT_A_LOT
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
                 //store
+               
                 Character character = new Character
                 {
                     TextureID = (int)texture,
@@ -121,8 +129,10 @@ namespace TEXT_A_LOT
             GL.VertexAttribPointer(0, 4, VertexAttribPointerType.Float, false,4 *sizeof(float), 0);
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
-           
-            
+
+            // In your GameWindow subclass constructor or Load event:
+             
+
 
 
         }
@@ -134,13 +144,19 @@ namespace TEXT_A_LOT
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
           
-            RenderText(shader, "", 1.0f, 550.0f, .50f, vec);
+            RenderText(shader, "", 10.0f, 550.0f, .50f, vec);
             
             
              
 
             SwapBuffers();
             
+        }
+        protected override void OnMouseMove(MouseMoveEventArgs e)
+        {
+            base.OnMouseMove(e);
+           
+
         }
 
         protected override void OnUnload()
@@ -170,7 +186,8 @@ namespace TEXT_A_LOT
                     }
                 }
             }
-
+            
+            PointToClient(mousePos);
            
 
 
@@ -186,7 +203,28 @@ namespace TEXT_A_LOT
             ag.Append(keySymbol);
           
         }
-        
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            SaveSystem s = new SaveSystem();
+            string f_name = "bb";
+            string b = ag.ToString();
+            s.SaveDataAsync(f_name, b);
+
+            using (ClosingWindow close = new ClosingWindow(300, 100, "CLOSE"))
+            {
+                close.CenterWindow();
+                close.MaximumSize = (300, 100);
+                close.Run();
+                Vector3 vec = new Vector3(1.0f, 1.0f, 1.0f);
+
+            }
+
+            
+
+
+        }
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
         {
             base.OnFramebufferResize(e);
@@ -236,10 +274,10 @@ namespace TEXT_A_LOT
                
                 //render quad
                 GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
-                char l = '\n';
-                if (c == l || c =='\t')
+                
+                if (x >= 700f)
                 {
-                    x = 1; // Reset x
+                    x = 10;// Reset x
                     y -= 50; // Move down
                     continue;
                 }

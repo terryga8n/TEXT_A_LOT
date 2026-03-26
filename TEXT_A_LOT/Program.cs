@@ -7,6 +7,7 @@ using TEXT_A_LOT;
 
 using(Text editor = new Text(800, 600, "heyy"))
 {
+  
    editor.Run();
 }
 
