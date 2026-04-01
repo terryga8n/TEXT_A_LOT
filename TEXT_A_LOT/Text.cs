@@ -1,4 +1,5 @@
 ﻿
+
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -10,11 +11,14 @@ using System.ComponentModel;
 using System.Text;
 using TEXT_A_LOT;
 using static System.Runtime.CompilerServices.RuntimeHelpers;
+using NfdSharp;
+using NfdExt;
+using OpenTK.Windowing.Common.Input;
 
 namespace TEXT_A_LOT
 
 {
-    class Text : GameWindow
+    partial class Text : GameWindow
     {
         Library ft;
         Face face;
@@ -22,14 +26,18 @@ namespace TEXT_A_LOT
         int vao;
         int vbo;
         Shader shader;
-        string a;
-        StringBuilder ag = new StringBuilder();
-        Vector2i mousePos;
+        private float _cursorBlinkTimer = 0f;
+        private bool _cursorVisible = true;
+        private int _cursorTextureID;
+
+
+
+        public static StringBuilder ag = new StringBuilder();
+       
 
         Dictionary<char, Character> Characters = new Dictionary<char, Character>();
 
-        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
-        private static extern bool FreeConsole();
+       SaveSystem save = new SaveSystem();
         public Text(int width, int height, string title) : base(GameWindowSettings.Default,
                        new NativeWindowSettings() { Size = (width, height), Title = title })
         {
@@ -41,7 +49,7 @@ namespace TEXT_A_LOT
             base.OnLoad();
             ft = new Library();
             
-            string fontPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PlayfairDisplay-VariableFont_wght.ttf");
+            string fontPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NotoSansSymbols-VariableFont_wght.ttf");
             face = new Face(ft, fontPath);
             if (face == null)
             {
@@ -129,9 +137,15 @@ namespace TEXT_A_LOT
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
 
-            // In your GameWindow subclass constructor or Load event:
-             
+          
 
+            _cursorTextureID = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, _cursorTextureID);
+            byte[] whitePixel = { 255, 255, 255, 255 };
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba,
+                1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte, whitePixel);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
 
 
         }
@@ -146,24 +160,23 @@ namespace TEXT_A_LOT
             RenderText(shader, "", 10.0f, 550.0f, .50f, vec);
             
             
-             
+           
 
             SwapBuffers();
             
         }
-        protected override void OnMouseMove(MouseMoveEventArgs e)
-        {
-            base.OnMouseMove(e);
-           
+      
+       
 
-        }
-
+     
         protected override void OnUnload()
         {
             base.OnUnload();
             shader.Dispose();
             
         }
+
+       
 
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
@@ -174,24 +187,33 @@ namespace TEXT_A_LOT
                 Close();
             }
 
-            if (KeyboardState.IsKeyDown(Keys.Backspace))
+            if (KeyboardState.IsKeyPressed(Keys.Backspace))
             {
                 if (ag.Length >= 1)
                 {
                     ag.Length--;
-                    if (KeyboardState.IsKeyReleased(Keys.Backspace))
-                    {
-
-                    }
+                   
                 }
             }
-            
-            PointToClient(mousePos);
-           
+
+            if (KeyboardState.IsKeyDown(Keys.O) && KeyboardState.IsKeyDown(Keys.LeftControl))
+                save.PickFileCrossPlatform();
+
+
+            if (KeyboardState.IsKeyDown(Keys.S) && KeyboardState.IsKeyDown(Keys.LeftControl))
+                
+                save.saveFile();
+
+            _cursorBlinkTimer += (float)args.Time;
+            if (_cursorBlinkTimer >= 0.5f)      // blink every 500ms
+            {
+                _cursorVisible = !_cursorVisible;
+                _cursorBlinkTimer = 0f;
+            }
 
 
         }
-
+        
 
 
         protected override void OnTextInput(TextInputEventArgs e)
@@ -199,19 +221,20 @@ namespace TEXT_A_LOT
             base.OnTextInput(e);
             char keySymbol = (char)e.Unicode;
             ag.Append(keySymbol);
-          
+
+
+           
+
         }
 
         protected override void OnClosing(CancelEventArgs e)
         {
             base.OnClosing(e);
-            SaveSystem s = new SaveSystem();
-            string f_name = "bb";
-            string b = ag.ToString();
-            s.SaveDataAsync(f_name, b);
+            
 
             using (ClosingWindow close = new ClosingWindow(300, 100, "CLOSE"))
             {
+
                 close.CenterWindow();
                 close.MaximumSize = (300, 100);
                 close.Run();
@@ -219,19 +242,21 @@ namespace TEXT_A_LOT
 
             }
 
-            
-
+           
 
         }
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
         {
             base.OnFramebufferResize(e);
+            Vector3 vec = new Vector3(1.0f, 1.0f, 1.0f);
 
             GL.Viewport(0, 0, e.Width, e.Height);
+            RenderText(shader, "", 10.0f, 550.0f, .50f, vec);
+          
         }
-                
 
-        
+
+
     }
 
     struct Character

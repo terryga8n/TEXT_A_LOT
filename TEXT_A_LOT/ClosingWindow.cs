@@ -160,8 +160,16 @@ protected override void OnResize(ResizeEventArgs e)
         protected override void OnClosing(CancelEventArgs e)
         {
             base.OnClosing(e);
-            
-            
+            SaveSystem.b = Text.ag.ToString();
+
+
+            SaveSystem.s.SaveDataAsync(SaveSystem.outpath, SaveSystem.b);
+            if(SaveSystem.outpath == "")
+            {
+                SaveSystem.s.saveFile();
+            }
+
+
         }
 
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)

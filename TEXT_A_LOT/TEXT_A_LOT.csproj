@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <PackageReference Include="freetype" Version="2.8.0.1" />
+    <PackageReference Include="NfdExt" Version="1.2.4" />
+    <PackageReference Include="NfdSharp" Version="1.0.1" />
     <PackageReference Include="OpenTk" Version="4.9.4" />
     <PackageReference Include="SharpFont.Dependencies" Version="2.6.0" />
     <PackageReference Include="SpaceWizards.SharpFont" Version="1.1.0" />
